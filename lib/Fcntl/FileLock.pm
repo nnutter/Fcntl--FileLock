@@ -45,7 +45,7 @@ sub fcntl {
     }
 
     my $struct = $self->create_fcntl_struct(type => $type);
-    my $lock = fcntl($self->fh, F_SETLK, $struct);
+    my $lock = fcntl($self->fh, $cmd, $struct);
 
     if (wantarray) {
         return (defined($lock), $struct);
