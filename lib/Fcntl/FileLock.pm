@@ -47,11 +47,12 @@ sub fcntl {
     my $struct = $self->create_fcntl_struct(type => $type);
     my $lock = fcntl($self->fh, $cmd, $struct);
 
+    my $rv = (defined($lock) ? 1 : 0);
     if (wantarray) {
-        return (defined($lock), $struct);
+        return ($rv, $struct);
     }
     else {
-        return defined($lock);
+        return $rv;
     }
 }
 
