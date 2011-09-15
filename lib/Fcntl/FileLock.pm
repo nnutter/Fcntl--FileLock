@@ -47,13 +47,20 @@ sub fcntl {
     my $struct = $self->create_fcntl_struct(type => $type);
     my $lock = fcntl($self->fh, F_SETLK, $struct);
 
-    return (defined $lock);
+    if (wantarray) {
+        return (defined($lock), $struct);
+    }
+    else {
+        return defined($lock);
+    }
 }
 
 sub is_locked {
     my $self = shift;
     my $type = shift || F_WRLCK;
-    return $self->fcntl(F_GETLK, $type);
+    my ($other, $struct) = $self->fcntl(F_GETLK, $type);
+    my $struct_hash = $self->unpack_fcntl_struct($struct);
+    return !($struct_hash->{type} == F_UNLCK);
 }
 
 sub lock {
@@ -85,6 +92,22 @@ sub create_fcntl_struct {
     my $struct = pack('s s l l s', $type, $whence, $start, $len, $pid);
 
     return $struct;
+}
+
+sub unpack_fcntl_struct {
+    my $self = shift;
+    my $struct = shift;
+    unless ($struct) { die "Must pass a struct in" };
+
+    my ($type, $whence, $start, $len, $pid) = unpack('s s l l s', $struct);
+    my $struct_hash = {
+        type => $type,
+        whence => $whence,
+        start => $start,
+        len => $len,
+        pid => $pid,
+    };
+    return $struct_hash;
 }
 
 1;
