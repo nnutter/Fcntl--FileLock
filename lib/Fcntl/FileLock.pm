@@ -32,10 +32,14 @@ sub fh {
     return $self->{fh};
 }
 
-sub set_lock {
+sub fcntl {
     my $self = shift;
+    my $cmd = shift;
     my $type = shift;
 
+    unless(defined $cmd) {
+        die "A lock command must be specified.\n";
+    }
     unless(defined $type) {
         die "A lock type must be specified.\n";
     }
@@ -46,23 +50,21 @@ sub set_lock {
     return (defined $lock);
 }
 
+sub is_locked {
+    my $self = shift;
+    my $type = shift || F_WRLCK;
+    return $self->fcntl(F_GETLK, $type);
+}
+
 sub lock {
     my $self = shift;
     my $type = shift || F_WRLCK;
-    return $self->set_lock($type);
+    return $self->fcntl(F_SETLK, $type);
 }
 
 sub release {
     my $self = shift;
-    return $self->set_lock(F_UNLCK);
-}
-
-sub unlink {
-    my $self = shift;
-    my $fh = $self->fh;
-    my $path = $self->path;
-    close $fh;
-    unlink $path;
+    return $self->fcntl(F_SETLK, F_UNLCK);
 }
 
 sub create_fcntl_struct {
