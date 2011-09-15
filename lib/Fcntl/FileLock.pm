@@ -59,9 +59,14 @@ sub fcntl {
 sub is_locked {
     my $self = shift;
     my $type = shift || F_WRLCK;
-    my ($other, $struct) = $self->fcntl(F_GETLK, $type);
+    my ($rv, $struct) = $self->fcntl(F_GETLK, $type);
     my $struct_hash = $self->unpack_fcntl_struct($struct);
-    return !($struct_hash->{type} == F_UNLCK);
+    if ($struct_hash->{type} != F_UNLCK) {
+        return $struct_hash->{pid};
+    }
+    else {
+        return 0;
+    }
 }
 
 sub lock {
