@@ -75,6 +75,12 @@ sub lock {
     return $self->fcntl(F_SETLK, $type);
 }
 
+sub lock_wait {
+    my $self = shift;
+    my $type = shift || F_WRLCK;
+    return $self->fcntl(F_SETLKW, $type);
+}
+
 sub release {
     my $self = shift;
     return $self->fcntl(F_SETLK, F_UNLCK);
