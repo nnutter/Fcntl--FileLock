@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Fcntl;
+use POSIX;
 
 sub create { my $self = shift; return $self->new(@_); }
 sub new {
@@ -15,7 +16,11 @@ sub new {
 
     my $fh = delete $params{fh};
     unless ($fh) { sysopen($fh, $path, O_CREAT|O_RDWR) };
+
+    # even when sysopen returns set $fh there may have been errors
+    # such as permission issues but ENOTTY is OK (no TTY)
     unless ($fh) { die "Failed to open file handle" };
+    if ($! && $! != ENOTTY) { die $! };
 
     my $object = {path => $path, fh => $fh};
 
