@@ -35,7 +35,7 @@ else {
     } while not $done;
     my $is_already_locked = $file_lock->is_locked;
     is($is_already_locked, $child_pid, "is already locked by child");
-    is($file_lock->lock, 0, 'failed to get lock');
+    is($file_lock->lock, undef, 'failed to get lock');
     waitpid($child_pid, 0);
     is($file_lock->is_locked, 0, "is now unlocked");
     is($file_lock->lock, 1, 'got lock');
