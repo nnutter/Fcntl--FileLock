@@ -3,6 +3,7 @@ package Fcntl::FileLock;
 use strict;
 use warnings;
 
+use IO::File;
 use Fcntl;
 use POSIX;
 
@@ -15,7 +16,7 @@ sub new {
     unless ($path) { die "Must specify a path" };
 
     my $fh = delete $params{fh};
-    unless ($fh) { sysopen($fh, $path, O_CREAT|O_RDWR) };
+    unless ($fh) { $fh = IO::File->new($path, O_CREAT|O_RDWR) };
 
     # even when sysopen returns set $fh there may have been errors
     # such as permission issues but ENOTTY is OK (no TTY)
@@ -63,8 +64,7 @@ sub fcntl {
 
 sub is_locked {
     my $self = shift;
-    my $type = shift || F_WRLCK;
-    my ($rv, $struct) = $self->fcntl(F_GETLK, $type);
+    my ($rv, $struct) = $self->fcntl(F_GETLK, F_WRLCK);
     my $struct_hash = $self->unpack_fcntl_struct($struct);
     if ($struct_hash->{type} != F_UNLCK) {
         return $struct_hash->{pid};
@@ -74,20 +74,36 @@ sub is_locked {
     }
 }
 
+sub lock_info {
+    my $self = shift;
+    my $fh = $self->fh;
+    $fh->seek(0, 0);
+    my $info = do { local $/; <$fh> };
+    my @info = ($info ? split("\n", $info) : ());
+    return \@info;
+}
+
 sub lock {
     my $self = shift;
-    my $type = shift || F_WRLCK;
-    return $self->fcntl(F_SETLK, $type);
+    my $info = shift;
+
+    my $got_lock = $self->fcntl(F_SETLK, F_WRLCK);
+    return unless $got_lock;
+
+    my $fh = $self->fh;
+    print $fh $info if $info;
+    return $got_lock;
 }
 
 sub lock_wait {
     my $self = shift;
-    my $type = shift || F_WRLCK;
-    return $self->fcntl(F_SETLKW, $type);
+    return $self->fcntl(F_SETLKW, F_WRLCK);
 }
 
 sub release {
     my $self = shift;
+    my $fh = $self->fh;
+    truncate($fh, 0);
     return $self->fcntl(F_SETLK, F_UNLCK);
 }
 
