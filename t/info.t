@@ -18,7 +18,7 @@ my $info = ['HOST foo', 'USER bob'];
 is($file_lock->lock(join "\n", @$info), 1, 'got lock');
 is_deeply($file_lock->lock_info, $info, 'lock info was set');
 
-is($file_lock->release, 1, 'released lock');
+is($file_lock->release, 1, 'released lock') || warn $file_lock->error;
 is_deeply($file_lock->lock_info, [], 'lock info was cleared');
 
 done_testing();
