@@ -18,9 +18,9 @@ if (!defined $child_pid) { die "Failed to fork" };
 
 if ($child_pid == 0) {
     my $file_lock = Fcntl::FileLock->new(path => $lock_path);
-    $file_lock->lock;
+    $file_lock->lock || warn $file_lock->error;
     sleep 1;
-    $file_lock->release;
+    $file_lock->release || warn $file_lock->error;
 }
 else {
     ok($$, "parent pid = $$");
@@ -35,10 +35,10 @@ else {
     } while not $done;
     my $is_already_locked = $file_lock->is_locked;
     is($is_already_locked, $child_pid, "is already locked by child");
-    is($file_lock->lock, undef, 'failed to get lock');
+    is($file_lock->lock, undef, 'failed to get lock') || warn $file_lock->error;
     waitpid($child_pid, 0);
     is($file_lock->is_locked, 0, "is now unlocked");
-    is($file_lock->lock, 1, 'got lock');
+    is($file_lock->lock, 1, 'got lock') || warn $file_lock->error;
 
     done_testing();
 }

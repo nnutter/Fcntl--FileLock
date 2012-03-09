@@ -15,7 +15,7 @@ my $file_lock = Fcntl::FileLock->new(path => $lock_path);
 isa_ok($file_lock, 'Fcntl::FileLock', 'file_lock');
 
 my $info = ['HOST foo', 'USER bob'];
-is($file_lock->lock(join "\n", @$info), 1, 'got lock');
+is($file_lock->lock(join "\n", @$info), 1, 'got lock') || warn $file_lock->error;
 is_deeply($file_lock->lock_info, $info, 'lock info was set');
 
 is($file_lock->release, 1, 'released lock') || warn $file_lock->error;
