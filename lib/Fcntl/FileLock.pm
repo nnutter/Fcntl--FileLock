@@ -64,8 +64,9 @@ sub fcntl {
 
     local $! = undef;
     my $lock = fcntl($self->fh, $cmd, $struct);
-    if ($!) {
-        $self->{error} = $!;
+    my $error = $!;
+    if ($error) {
+        $self->{error} = $error;
     } else {
         $self->{error} = undef;
     }
