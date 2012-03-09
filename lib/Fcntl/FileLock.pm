@@ -133,7 +133,25 @@ sub create_fcntl_struct {
     # defaults to current process pid
     my $pid = delete $params{pid} || $$;
 
-    my $struct = pack('s s l l s', $type, $whence, $start, $len, $pid);
+    my $struct;
+    if ($^O eq 'linux') {
+        # short l_type;    /* Type of lock: F_RDLCK, F_WRLCK, F_UNLCK */
+        # short l_whence;  /* How to interpret l_start: SEEK_SET, SEEK_CUR, SEEK_END */
+        # off_t l_start;   /* Starting offset for lock */
+        # off_t l_len;     /* Number of bytes to lock */
+        # pid_t l_pid;     /* PID of process blocking our lock (F_GETLK only) */
+        $struct = pack('s s l l s', $type, $whence, $start, $len, $pid);
+    } elsif ($^O eq 'darwin') {
+        die "Sorry I don't know how to pack the flock struct on $^O"; # doesn't work yet
+        # off_t       l_start;    /* starting offset */
+        # off_t       l_len;      /* len = 0 means until end of file */
+        # pid_t       l_pid;      /* lock owner */
+        # short       l_type;     /* lock type: read/write, etc. */
+        # short       l_whence;   /* type of l_start */
+        $struct = pack('q q i s s', $start, $len, $pid, $type, $whence);
+    } else {
+        die "Sorry I don't know how to pack the flock struct on $^O";
+    }
 
     return $struct;
 }
@@ -143,7 +161,14 @@ sub unpack_fcntl_struct {
     my $struct = shift;
     unless ($struct) { die "Must pass a struct in" };
 
-    my ($type, $whence, $start, $len, $pid) = unpack('s s l l s', $struct);
+    my ($type, $whence, $start, $len, $pid);
+    if ($^O eq 'linux') {
+        ($type, $whence, $start, $len, $pid) = unpack('s s l l s', $struct);
+    } elsif ($^O eq 'darwin') {
+        ($start, $len, $pid, $type, $whence) = unpack('l l i s s', $struct);
+    } else {
+        die "Sorry I don't know how to pack the flock struct on $^O";
+    }
     my $struct_hash = {
         type => $type,
         whence => $whence,
