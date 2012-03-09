@@ -38,6 +38,15 @@ sub fh {
     return $self->{fh};
 }
 
+sub error {
+    return shift->{error};
+}
+
+sub struct {
+    my $self = shift;
+    return $self->unpack_fcntl_struct(${$self->{struct_ref}})
+}
+
 sub fcntl {
     my $self = shift;
     my $cmd = shift;
@@ -51,23 +60,24 @@ sub fcntl {
     }
 
     my $struct = $self->create_fcntl_struct(type => $type);
-    my $lock = fcntl($self->fh, $cmd, $struct);
+    $self->{struct_ref} = \$struct;
 
-    my $rv = (defined($lock) ? 1 : 0);
-    if (wantarray) {
-        return ($rv, $struct);
+    local $! = undef;
+    my $lock = fcntl($self->fh, $cmd, $struct);
+    if ($!) {
+        $self->{error} = $!;
+    } else {
+        $self->{error} = undef;
     }
-    else {
-        return $rv;
-    }
+
+    return (defined($lock) ? 1 : 0);
 }
 
 sub is_locked {
     my $self = shift;
-    my ($rv, $struct) = $self->fcntl(F_GETLK, F_WRLCK);
-    my $struct_hash = $self->unpack_fcntl_struct($struct);
-    if ($struct_hash->{type} != F_UNLCK) {
-        return $struct_hash->{pid};
+    my $rv = $self->fcntl(F_GETLK, F_WRLCK);
+    if ($self->struct->{type} != F_UNLCK) {
+        return $self->struct->{pid};
     }
     else {
         return 0;
